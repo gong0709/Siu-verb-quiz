@@ -593,6 +593,12 @@ write wrote written 쓰다</textarea>
     nextQuestion();
   }
 
+  function presentHtml(w) {
+    return '<span class="present">' + escapeHtml(w.present) +
+      (w.ko ? '<span class="ko">' + escapeHtml(w.ko) + '</span>' : '') + '</span>' +
+      '<button class="speak" data-word="' + escapeHtml(w.present) + '" title="소리 듣기">🔊</button>';
+  }
+
   function slotHtml(label, mine, answer, ok) {
     mine = (mine || "").trim();
     var mineDisp = mine === "" ? "(빈칸)" : escapeHtml(mine);
@@ -612,6 +618,7 @@ write wrote written 쓰다</textarea>
 
     if (L.allMastered(progress)) { save(); showDone(); return; }
 
+    roundInCycle++;
     var remaining = L.poolFor(progress).length;
     var masteredCount = progress.length - remaining;
     save();
@@ -625,7 +632,6 @@ write wrote written 쓰다</textarea>
     streamEl.appendChild(banner);
     banner.scrollIntoView({ behavior: "smooth", block: "center" });
     banner.querySelector(".nextBtn").addEventListener("click", function () {
-      roundInCycle++;
       startRound();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });

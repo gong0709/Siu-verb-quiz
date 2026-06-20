@@ -301,12 +301,15 @@ write wrote written 쓰다</textarea>
       <div class="big">🏆</div>
       <h2 id="doneTitle">전부 다 맞혔어요!</h2>
       <p class="sub" id="doneMsg"></p>
-      <div class="center"><button class="ghost" id="restartBtn">다시 놀기 🔄</button></div>
+      <div class="center" id="doneBtns">
+        <button id="nextCycleBtn">다음 단계 ▶</button>
+      </div>
     </div>
   </section>
 
 </div>
 
+<script src="quiz-logic.js"></script>
 <script>
 (function () {
   "use strict";
@@ -318,8 +321,15 @@ write wrote written 쓰다</textarea>
   var mascotEl = document.getElementById("mascot");
   var starsEl  = document.getElementById("stars");
 
-  var state = null;
+  var L = window.VerbQuizLogic;
+  var STORE_KEY = "verbquiz.v1";
+  var words = [];          // parsed full list
+  var progress = [];       // [{streak, mastered}] by index
+  var cycleIndex = 1;
+  var roundInCycle = 1;
   var starCount = 0;
+  var listTextSaved = "";
+  var round = null;        // { ids:[], idx:0, results:{} }
 
   var PRAISE = ["최고예요! 🌟", "잘했어요! 👍", "정답이에요! 🎉", "멋져요! ✨", "대단해요! 🥳", "완벽해요! 💯"];
   var CHEER  = ["괜찮아요, 다시 해봐요! 💪", "거의 다 왔어요! 🍀", "다음엔 맞출 수 있어요! 😊", "조금만 더! 🌈"];
@@ -391,10 +401,11 @@ write wrote written 쓰다</textarea>
     setTimeout(function () { mascotEl.textContent = "🦊"; }, 1200);
   }
 
-  function addStar() {
-    starCount++;
-    starsEl.textContent = "⭐".repeat(Math.min(starCount, 12)) + (starCount > 12 ? " ×" + starCount : "");
+  function starText() {
+    if (starCount <= 0) return "";
+    return "⭐".repeat(Math.min(starCount, 12)) + (starCount > 12 ? " ×" + starCount : "");
   }
+  function addStar() { starCount++; starsEl.textContent = starText(); }
 
   // ---------- parsing ----------
   function parseList(raw) {
@@ -427,29 +438,68 @@ write wrote written 쓰다</textarea>
     return got !== "" && answer.split("/").some(function (a) { return norm(a) === got; });
   }
 
+  // ---------- persistence ----------
+  function currentSaveObject() {
+    return {
+      listText: listTextSaved,
+      progress: progress,
+      cycleIndex: cycleIndex,
+      roundInCycle: roundInCycle,
+      starCount: starCount,
+      roundIds: round ? round.ids : [],
+      idx: round ? round.idx : 0,
+      results: round ? round.results : {}
+    };
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(currentSaveObject())); } catch (e) {}
+  }
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return null; }
+  }
+
   // ---------- round control ----------
-  function startRound(words, roundNo) {
-    state = { queue: shuffle(words), idx: 0, total: words.length, wrong: [], roundNo: roundNo };
-    streamEl.innerHTML = "";
-    document.getElementById("roundTag").textContent = roundNo + "회차";
-    updateBar();
-    nextQuestion();
+  function showQuiz() {
+    setupEl.classList.add("hidden");
+    doneEl.classList.add("hidden");
+    quizEl.classList.remove("hidden");
+  }
+
+  function setRoundTag() {
+    document.getElementById("roundTag").textContent = L.roundLabel(cycleIndex, roundInCycle);
   }
 
   function updateBar() {
-    document.getElementById("count").textContent = state.idx + " / " + state.total;
-    document.getElementById("progFill").style.width = (state.total ? state.idx / state.total * 100 : 0) + "%";
+    var total = round ? round.ids.length : 0;
+    var idx = round ? round.idx : 0;
+    document.getElementById("count").textContent = idx + " / " + total;
+    document.getElementById("progFill").style.width = (total ? idx / total * 100 : 0) + "%";
   }
 
-  function presentHtml(w) {
-    return '<span class="present">' + escapeHtml(w.present) +
-      (w.ko ? '<span class="ko">' + escapeHtml(w.ko) + '</span>' : '') + '</span>' +
-      '<button class="speak" data-word="' + escapeHtml(w.present) + '" title="소리 듣기">🔊</button>';
+  function startGameFresh(text) {
+    var parsed = parseList(text);
+    if (parsed.length === 0) { alert("동사 목록을 입력해요! 한 줄에 '현재 과거 과거분사'."); return; }
+    words = parsed;
+    listTextSaved = text;
+    cycleIndex = 1; roundInCycle = 1; starCount = 0;
+    progress = L.makeProgress(words.length);
+    showQuiz();
+    startRound();
+  }
+
+  function startRound() {
+    round = { ids: shuffle(L.poolFor(progress)), idx: 0, results: {} };
+    streamEl.innerHTML = "";
+    setRoundTag();
+    starsEl.textContent = starText();
+    updateBar();
+    save();
+    nextQuestion();
   }
 
   function nextQuestion() {
-    if (state.idx >= state.queue.length) { finishRound(); return; }
-    var w = state.queue[state.idx];
+    if (round.idx >= round.ids.length) { finishRound(); return; }
+    var w = words[round.ids[round.idx]];
 
     var card = document.createElement("div");
     card.className = "card in";
@@ -466,14 +516,12 @@ write wrote written 쓰다</textarea>
     var iPast = card.querySelector(".i-past");
     var iPp   = card.querySelector(".i-pp");
     card.querySelector(".speak").addEventListener("click", function () { speak(w.present); });
-
     iPast.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); iPp.focus(); }
     });
     iPp.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); submit(card, w, iPast.value, iPp.value); }
     });
-
     iPast.focus();
     card.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -482,11 +530,10 @@ write wrote written 쓰다</textarea>
     var okPast = check(pastVal, w.past);
     var okPp   = check(ppVal, w.pp);
     var allOk  = okPast && okPp;
-    if (!allOk) state.wrong.push(w);
+    round.results[round.ids[round.idx]] = allOk;
 
     var msg = allOk ? PRAISE[Math.floor(Math.random() * PRAISE.length)]
                     : CHEER[Math.floor(Math.random() * CHEER.length)];
-
     card.className = "card " + (allOk ? "correct" : "wrong");
     card.innerHTML =
       '<div>' + presentHtml(w) + '</div>' +
@@ -501,8 +548,9 @@ write wrote written 쓰다</textarea>
     else { soundWrong(); speak(w.present); }
     mascotReact(allOk);
 
-    state.idx++;
+    round.idx++;
     updateBar();
+    save();
     nextQuestion();
   }
 
@@ -517,29 +565,49 @@ write wrote written 쓰다</textarea>
   }
 
   function finishRound() {
+    round.ids.forEach(function (id) {
+      progress[id] = L.applyAnswer(progress[id], !!round.results[id], cycleIndex, roundInCycle);
+    });
+    round = null;
     updateBar();
-    if (state.wrong.length === 0) {
-      quizEl.classList.add("hidden");
-      doneEl.classList.remove("hidden");
-      document.getElementById("doneMsg").textContent =
-        "별 " + starCount + "개 획득! (" + state.roundNo + "회차에 끝, 총 " + state.total + "문제)";
-      confetti(); setTimeout(confetti, 350); soundCorrect();
-      return;
-    }
+
+    if (L.allMastered(progress)) { showDone(); save(); return; }
+
+    var remaining = L.poolFor(progress).length;
+    var masteredCount = progress.length - remaining;
+    save();
+
     var banner = document.createElement("div");
     banner.className = "card in center";
     banner.innerHTML =
       '<div style="font-size:40px">🐣</div>' +
-      '<p style="margin:8px 0 12px;font-size:17px">틀린 문제 <b>' + state.wrong.length + '</b>개! 다시 도전해요.</p>' +
-      '<button class="retryBtn">틀린 것만 다시 ▶</button>';
+      '<p style="margin:8px 0 12px;font-size:17px">마스터 <b>' + masteredCount + '</b>개 · 남은 단어 <b>' + remaining + '</b>개</p>' +
+      '<button class="nextBtn">다음 회차 ▶</button>';
     streamEl.appendChild(banner);
     banner.scrollIntoView({ behavior: "smooth", block: "center" });
-
-    var wrongWords = state.wrong, nextNo = state.roundNo + 1;
-    banner.querySelector(".retryBtn").addEventListener("click", function () {
-      startRound(wrongWords, nextNo);
+    banner.querySelector(".nextBtn").addEventListener("click", function () {
+      roundInCycle++;
+      startRound();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+  }
+
+  function showDone() {
+    quizEl.classList.add("hidden");
+    doneEl.classList.remove("hidden");
+    document.getElementById("doneTitle").textContent = "🏆 100점!";
+    document.getElementById("doneMsg").textContent =
+      "별 " + starCount + "개! " + cycleIndex + "바퀴 완성 — 전부 마스터했어요!";
+    confetti(); setTimeout(confetti, 350); soundCorrect();
+  }
+
+  function nextCycle() {
+    cycleIndex++;
+    roundInCycle = 1;
+    progress = L.startCycle(progress);
+    showQuiz();
+    startRound();
+    window.scrollTo({ top: 0 });
   }
 
   function escapeHtml(s) {
@@ -550,20 +618,10 @@ write wrote written 쓰다</textarea>
 
   // ---------- wiring ----------
   document.getElementById("startBtn").addEventListener("click", function () {
-    var words = parseList(document.getElementById("listInput").value);
-    if (words.length === 0) { alert("동사 목록을 입력해요! 한 줄에 '현재 과거 과거분사'."); return; }
     audio(); // unlock sound on first gesture
-    starCount = 0; starsEl.textContent = "";
-    setupEl.classList.add("hidden");
-    quizEl.classList.remove("hidden");
-    startRound(words, 1);
+    startGameFresh(document.getElementById("listInput").value);
   });
-
-  document.getElementById("restartBtn").addEventListener("click", function () {
-    doneEl.classList.add("hidden");
-    setupEl.classList.remove("hidden");
-    window.scrollTo({ top: 0 });
-  });
+  document.getElementById("nextCycleBtn").addEventListener("click", nextCycle);
 })();
 </script>
 </body>

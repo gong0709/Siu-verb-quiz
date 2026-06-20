@@ -277,7 +277,10 @@ write wrote written 쓰다</textarea>
     <p class="hint">한 줄에 동사 하나. 형식: 현재 과거 과거분사 (뜻)
 공백 / 쉼표 / 하이픈 구분 가능 (예: swim, swam, swum)
 복수 정답은 / 로: dream dreamed/dreamt dreamed/dreamt</p>
-    <div class="center"><button id="startBtn">시작하기 ▶</button></div>
+    <div class="center" id="setupBtns">
+      <button id="startBtn">시작하기 ▶</button>
+      <button id="resumeBtn" class="ghost hidden"></button>
+    </div>
   </section>
 
   <!-- QUIZ -->
@@ -627,6 +630,29 @@ write wrote written 쓰다</textarea>
     window.scrollTo({ top: 0 });
   }
 
+  function resumeGame(saved) {
+    var parsed = parseList(saved.listText || "");
+    if (parsed.length === 0) { alert("저장된 목록을 읽을 수 없어요."); return; }
+    words = parsed;
+    listTextSaved = saved.listText;
+    progress = (saved.progress && saved.progress.length === parsed.length)
+      ? saved.progress : L.makeProgress(parsed.length);
+    cycleIndex = saved.cycleIndex || 1;
+    roundInCycle = saved.roundInCycle || 1;
+    starCount = saved.starCount || 0;
+    showQuiz();
+    if (saved.roundIds && saved.roundIds.length) {
+      round = { ids: saved.roundIds, idx: saved.idx || 0, results: saved.results || {} };
+      streamEl.innerHTML = "";
+      setRoundTag();
+      starsEl.textContent = starText();
+      updateBar();
+      nextQuestion();
+    } else {
+      startRound();
+    }
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
@@ -641,6 +667,15 @@ write wrote written 쓰다</textarea>
   document.getElementById("nextCycleBtn").addEventListener("click", nextCycle);
   document.getElementById("resetBtn").addEventListener("click", resetGame);
   document.getElementById("doneResetBtn").addEventListener("click", resetGame);
+
+  (function initResume() {
+    var saved = load();
+    if (!saved || !saved.listText) return;
+    var rb = document.getElementById("resumeBtn");
+    rb.textContent = "이어하기 ▶ (" + L.roundLabel(saved.cycleIndex || 1, saved.roundInCycle || 1) + ")";
+    rb.classList.remove("hidden");
+    rb.addEventListener("click", function () { audio(); resumeGame(load()); });
+  })();
 })();
 </script>
 </body>

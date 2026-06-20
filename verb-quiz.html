@@ -571,7 +571,7 @@ write wrote written 쓰다</textarea>
     round = null;
     updateBar();
 
-    if (L.allMastered(progress)) { showDone(); save(); return; }
+    if (L.allMastered(progress)) { save(); showDone(); return; }
 
     var remaining = L.poolFor(progress).length;
     var masteredCount = progress.length - remaining;

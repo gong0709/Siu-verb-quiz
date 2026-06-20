@@ -155,6 +155,12 @@
   @keyframes jump { 0%{transform:translateY(0)} 30%{transform:translateY(-16px) scale(1.1)} 55%{transform:translateY(0)} 70%{transform:translateY(-7px)} 100%{transform:translateY(0)} }
   @keyframes wobble { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-12deg)} 50%{transform:rotate(10deg)} 75%{transform:rotate(-6deg)} }
   @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
+  .mascot-row { flex-wrap: wrap; }
+  #setupBtns, #doneBtns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .howto ul { margin: 8px 0 14px; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  .howto ul:last-child { margin-bottom: 0; }
+  .howto code { background: #fff2e2; color: var(--accent); padding: 1px 6px; border-radius: 6px; }
+  @media (max-width: 360px) { .fields { flex-direction: column; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 </head>
@@ -282,6 +288,25 @@ write wrote written 쓰다</textarea>
       <button id="resumeBtn" class="ghost hidden"></button>
       <button id="importBtn" class="ghost">파일 불러오기</button>
       <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+    </div>
+
+    <div class="card howto">
+      <b>📖 사용법</b>
+      <ul>
+        <li>한 줄에 동사 하나: <code>현재 과거 과거분사 (뜻)</code></li>
+        <li>과거형·과거분사 칸에 답을 적고 <b>Enter</b></li>
+        <li>🔊 버튼으로 발음을 들을 수 있어요</li>
+        <li>진행 상황은 자동 저장 — 다음에 <b>이어하기</b>로 계속</li>
+        <li>다른 기기로 옮기려면 <b>내보내기 / 파일 불러오기</b></li>
+        <li>처음부터 다시 하려면 위쪽 <b>리셋</b> 버튼</li>
+      </ul>
+      <b>🧠 작동 원리</b>
+      <ul>
+        <li>한 단어를 <b>연속 2번</b> 맞히면 잠시 쉬어가요(제외)</li>
+        <li>틀린 단어는 맞힐 때까지 계속 나와요</li>
+        <li>남은 단어가 0개가 되면 <b>100점</b> 🎉 → 전체를 한 바퀴 더!</li>
+        <li>2바퀴부터는 첫 회차에 1번만 맞혀도 통과, 틀리면 다시 2번 연속 필요</li>
+      </ul>
     </div>
   </section>
 

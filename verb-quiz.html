@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동사 변신 놀이 🦊</title>
+<style>
+  :root {
+    --bg1: #fff7ed;
+    --bg2: #eef6ff;
+    --card: #ffffff;
+    --line: #ffe3c2;
+    --text: #2d2a4a;
+    --muted: #9aa0b4;
+    --accent: #ff8c42;
+    --accent2: #6c8cff;
+    --ok: #1fb56b;
+    --ok-bg: #e3fbef;
+    --bad: #ff6b8a;
+    --bad-bg: #fff0f4;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: linear-gradient(160deg, var(--bg1), var(--bg2));
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "Comic Sans MS", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 18px 16px 140px; position: relative; }
+  h1 { font-size: 26px; margin: 6px 0 2px; text-align: center; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; text-align: center; }
+
+  textarea {
+    width: 100%;
+    min-height: 190px;
+    padding: 14px;
+    border: 2px dashed var(--line);
+    border-radius: 16px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 15px;
+    resize: vertical;
+    background: var(--card);
+    color: var(--text);
+  }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 4px 16px; white-space: pre-line; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 26px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 18px;
+    box-shadow: 0 4px 0 #e06f28;
+    transition: transform .08s, box-shadow .08s;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 #e06f28; }
+  button.ghost { background: var(--accent2); box-shadow: 0 4px 0 #4f6ad6; }
+  button.ghost:active { box-shadow: 0 1px 0 #4f6ad6; }
+  .center { text-align: center; }
+
+  /* mascot + top bar */
+  .topbar {
+    position: sticky; top: 0; z-index: 8;
+    background: linear-gradient(160deg, var(--bg1), var(--bg2));
+    padding: 10px 0 12px;
+    margin-bottom: 14px;
+  }
+  .mascot-row { display: flex; align-items: center; gap: 12px; }
+  .mascot {
+    font-size: 46px; line-height: 1;
+    transition: transform .2s;
+    user-select: none;
+  }
+  .mascot.happy { animation: jump .5s ease; }
+  .mascot.sad   { animation: wobble .5s ease; }
+  .meta { flex: 1; }
+  .stars { font-size: 20px; letter-spacing: 1px; min-height: 26px; }
+  .progress { height: 12px; background: #ffe7cf; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#ffb347,#ff8c42); transition: width .35s; }
+  .countline { display:flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .round-tag { font-weight: 700; color: var(--accent); }
+
+  .card {
+    background: var(--card);
+    border: 2px solid #fff;
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 18px rgba(120,120,160,.10);
+  }
+  .card.in { animation: slideIn .35s cubic-bezier(.2,.8,.3,1.2); }
+  .card.correct { border-color: var(--ok); background: var(--ok-bg); animation: pop .45s ease; }
+  .card.wrong   { border-color: var(--bad); background: var(--bad-bg); animation: shake .45s ease; }
+
+  .present { font-size: 30px; font-weight: 800; letter-spacing: .5px; }
+  .present .ko { font-size: 16px; font-weight: 500; color: var(--muted); margin-left: 10px; }
+  .speak {
+    border: none; background: #fff2e2; color: var(--accent);
+    box-shadow: none; font-size: 20px; padding: 4px 10px; border-radius: 12px;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .speak:active { transform: scale(.9); box-shadow: none; }
+
+  .fields { display: flex; gap: 12px; margin-top: 14px; }
+  .field { flex: 1; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .field input {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    font-size: 20px;
+    font-family: inherit;
+    background: #fffdfa;
+    color: var(--text);
+    text-align: center;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); background:#fff; }
+
+  .result-row { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .slot { font-size: 17px; }
+  .slot .lbl { font-size: 12px; color: var(--muted); display:block; font-weight: 600; }
+  .slot .mine { font-weight: 700; }
+  .slot .mine.x { color: var(--bad); text-decoration: line-through; }
+  .slot .ans { color: var(--ok); font-weight: 800; }
+  .verdict { font-weight: 800; margin-top: 8px; font-size: 18px; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.no { color: var(--bad); }
+
+  .summary { text-align: center; padding: 30px 16px; }
+  .summary .big { font-size: 64px; animation: jump .6s ease; }
+  .summary h2 { margin: 10px 0; font-size: 26px; }
+  .hidden { display: none; }
+
+  /* confetti */
+  .confetti {
+    position: fixed; top: -12px; width: 11px; height: 14px;
+    z-index: 50; border-radius: 2px; pointer-events: none;
+    animation: fall linear forwards;
+  }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity:1; transform: none; } }
+  @keyframes pop { 0%{transform:scale(1)} 35%{transform:scale(1.05)} 70%{transform:scale(.99)} 100%{transform:scale(1)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  @keyframes jump { 0%{transform:translateY(0)} 30%{transform:translateY(-16px) scale(1.1)} 55%{transform:translateY(0)} 70%{transform:translateY(-7px)} 100%{transform:translateY(0)} }
+  @keyframes wobble { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-12deg)} 50%{transform:rotate(10deg)} 75%{transform:rotate(-6deg)} }
+  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- SETUP -->
+  <section id="setup">
+    <h1>🦊 동사 변신 놀이</h1>
+    <p class="sub">현재형을 보고 과거형·과거분사형을 적어요!</p>
+    <textarea id="listInput" spellcheck="false" placeholder="swim swam swum 수영하다">begin began begun 시작하다
+drink drank drunk 마시다
+ring rang rung 소리울리다
+run ran run 달리다
+sing sang sung 노래하다
+sink sank/sunk sunk 가라앉다
+swim swam swum 수영하다
+grow grew grown 자라다
+fly flew flown 날다
+know knew known 알다
+throw threw thrown 던지다
+draw drew drawn 그리다
+bet bet bet 내기하다
+burst burst burst 터지다
+cost cost cost 비용들다
+cut cut cut 자르다
+fit fit/fitted fit/fitted 맞다
+hit hit hit 치다
+hurt hurt hurt 다치게하다
+let let let 허락하다
+put put put 놓다
+quit quit quit 그만두다
+set set set 맞추다
+shut shut shut 닫다
+spit spat/spit spat/spit 침뱉다
+spread spread spread 펴다
+bleed bled bled 피흘리다
+breed bred bred 기르다
+bring brought brought 가져오다
+burn burned/burnt burned/burnt 태우다
+buy bought bought 사다
+catch caught caught 잡다
+dig dug dug 파다
+feed fed fed 먹이다
+fight fought fought 싸우다
+hang hung hung 걸다
+hold held held 잡다
+leap leaped/leapt leaped/leapt 뛰어오르다
+shine shone/shined shone/shined 빛나다
+shoot shot shot 쏘다
+spin spun spun 돌다
+sting stung stung 찌르다
+strike struck struck 때리다
+sweep swept swept 쓸다
+teach taught taught 가르치다
+tell told told 말하다
+wear wore worn 입다
+wind wound wound 감다
+bite bit bitten 물다
+break broke broken 깨다
+choose chose chosen 고르다
+drive drove driven 운전하다
+eat ate eaten 먹다
+fall fell fallen 떨어지다
+forget forgot forgotten/forgot 잊다
+forgive forgave forgiven 용서하다
+freeze froze frozen 얼다
+give gave given 주다
+hide hid hidden 숨다
+shake shook shaken 흔들다
+steal stole stolen 훔치다
+speak spoke spoken 말하다
+swear swore sworn 맹세하다
+take took taken 가져가다
+tear tore torn 찢다
+wake woke woken 깨다
+build built built 짓다
+creep crept crept 기어가다
+deal dealt dealt 다루다
+feel felt felt 느끼다
+get got gotten/got 얻다
+keep kept kept 유지하다
+leave left left 떠나다
+lend lent lent 빌려주다
+lose lost lost 잃다
+mean meant meant 의미하다
+send sent sent 보내다
+sit sat sat 앉다
+sleep slept slept 자다
+spend spent spent 쓰다
+find found found 찾다
+have had had 가지다
+hear heard heard 듣다
+lay laid laid 놓다
+lead led led 이끌다
+make made made 만들다
+pay paid paid 지불하다
+read read read 읽다
+say said said 말하다
+sell sold sold 팔다
+slide slid slid 미끄러지다
+stand stood stood 서다
+understand understood understood 이해하다
+be was/were been ~이다
+become became become ~이되다
+come came come 오다
+do did done 하다
+forbid forbade forbidden 금지하다
+go went gone 가다
+lie lay lain 눕다
+mistake mistook mistaken 실수하다
+ride rode ridden 타다
+see saw seen 보다
+shrink shrank/shrunk shrunk 줄어들다
+stick stuck stuck 붙이다
+swing swung swung 흔들리다
+weave wove woven 짜다
+win won won 이기다
+write wrote written 쓰다</textarea>
+    <p class="hint">한 줄에 동사 하나. 형식: 현재 과거 과거분사 (뜻)
+공백 / 쉼표 / 하이픈 구분 가능 (예: swim, swam, swum)
+복수 정답은 / 로: dream dreamed/dreamt dreamed/dreamt</p>
+    <div class="center"><button id="startBtn">시작하기 ▶</button></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="hidden">
+    <div class="topbar">
+      <div class="mascot-row">
+        <div class="mascot" id="mascot">🦊</div>
+        <div class="meta">
+          <div class="stars" id="stars"></div>
+          <div class="progress"><i id="progFill"></i></div>
+          <div class="countline">
+            <span class="round-tag" id="roundTag">1회차</span>
+            <span id="count">0 / 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="stream"></div>
+  </section>
+
+  <!-- DONE -->
+  <section id="done" class="hidden">
+    <div class="summary">
+      <div class="big">🏆</div>
+      <h2 id="doneTitle">전부 다 맞혔어요!</h2>
+      <p class="sub" id="doneMsg"></p>
+      <div class="center"><button class="ghost" id="restartBtn">다시 놀기 🔄</button></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var setupEl  = document.getElementById("setup");
+  var quizEl   = document.getElementById("quiz");
+  var doneEl   = document.getElementById("done");
+  var streamEl = document.getElementById("stream");
+  var mascotEl = document.getElementById("mascot");
+  var starsEl  = document.getElementById("stars");
+
+  var state = null;
+  var starCount = 0;
+
+  var PRAISE = ["최고예요! 🌟", "잘했어요! 👍", "정답이에요! 🎉", "멋져요! ✨", "대단해요! 🥳", "완벽해요! 💯"];
+  var CHEER  = ["괜찮아요, 다시 해봐요! 💪", "거의 다 왔어요! 🍀", "다음엔 맞출 수 있어요! 😊", "조금만 더! 🌈"];
+  var HAPPY_FACES = ["😺", "🥳", "🤩", "😻", "🐰", "🌟"];
+
+  // ---------- sound (Web Audio, no files) ----------
+  var ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    return ac;
+  }
+  function tone(freq, start, dur, type, vol) {
+    var c = audio(); if (!c) return;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine";
+    o.frequency.value = freq;
+    o.connect(g); g.connect(c.destination);
+    var t = c.currentTime + start;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.25, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function soundCorrect() { // happy arpeggio C-E-G-C
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { tone(f, i * 0.09, 0.18, "triangle", 0.22); });
+  }
+  function soundWrong() { // gentle two-note boop (not harsh)
+    tone(392, 0, 0.16, "sine", 0.2);
+    tone(311.13, 0.14, 0.22, "sine", 0.2);
+  }
+
+  // ---------- speech (read the word aloud) ----------
+  function speak(word) {
+    if (!("speechSynthesis" in window)) return;
+    try {
+      var u = new SpeechSynthesisUtterance(word);
+      u.lang = "en-US"; u.rate = 0.85;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- confetti ----------
+  var COLORS = ["#ff8c42","#6c8cff","#1fb56b","#ff6b8a","#ffd23f","#9b6cff"];
+  function confetti() {
+    for (var i = 0; i < 34; i++) {
+      var p = document.createElement("div");
+      p.className = "confetti";
+      p.style.left = Math.random() * 100 + "vw";
+      p.style.background = COLORS[Math.floor(Math.random() * COLORS.length)];
+      var dur = 1.1 + Math.random() * 1.1;
+      p.style.animationDuration = dur + "s";
+      p.style.transform = "rotate(" + (Math.random() * 360) + "deg)";
+      document.body.appendChild(p);
+      (function (el) { setTimeout(function () { el.remove(); }, dur * 1000 + 200); })(p);
+    }
+  }
+
+  function mascotReact(ok) {
+    mascotEl.classList.remove("happy", "sad");
+    void mascotEl.offsetWidth; // reflow to restart animation
+    if (ok) {
+      mascotEl.textContent = HAPPY_FACES[Math.floor(Math.random() * HAPPY_FACES.length)];
+      mascotEl.classList.add("happy");
+    } else {
+      mascotEl.textContent = "🤗";
+      mascotEl.classList.add("sad");
+    }
+    setTimeout(function () { mascotEl.textContent = "🦊"; }, 1200);
+  }
+
+  function addStar() {
+    starCount++;
+    starsEl.textContent = "⭐".repeat(Math.min(starCount, 12)) + (starCount > 12 ? " ×" + starCount : "");
+  }
+
+  // ---------- parsing ----------
+  function parseList(raw) {
+    var out = [];
+    raw.split("\n").forEach(function (line) {
+      line = line.trim();
+      if (!line) return;
+      var parts = line.indexOf(",") > -1
+        ? line.split(",")
+        : (line.indexOf("\t") > -1 ? line.split("\t") : line.split(/\s+/));
+      parts = parts.map(function (s) { return s.trim(); }).filter(Boolean);
+      if (parts.length < 3) return;
+      out.push({ present: parts[0], past: parts[1], pp: parts[2], ko: parts.slice(3).join(" ") });
+    });
+    return out;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function check(input, answer) {
+    var norm = function (s) { return s.trim().toLowerCase().replace(/\s+/g, " "); };
+    var got = norm(input);
+    return got !== "" && answer.split("/").some(function (a) { return norm(a) === got; });
+  }
+
+  // ---------- round control ----------
+  function startRound(words, roundNo) {
+    state = { queue: shuffle(words), idx: 0, total: words.length, wrong: [], roundNo: roundNo };
+    streamEl.innerHTML = "";
+    document.getElementById("roundTag").textContent = roundNo + "회차";
+    updateBar();
+    nextQuestion();
+  }
+
+  function updateBar() {
+    document.getElementById("count").textContent = state.idx + " / " + state.total;
+    document.getElementById("progFill").style.width = (state.total ? state.idx / state.total * 100 : 0) + "%";
+  }
+
+  function presentHtml(w) {
+    return '<span class="present">' + escapeHtml(w.present) +
+      (w.ko ? '<span class="ko">' + escapeHtml(w.ko) + '</span>' : '') + '</span>' +
+      '<button class="speak" data-word="' + escapeHtml(w.present) + '" title="소리 듣기">🔊</button>';
+  }
+
+  function nextQuestion() {
+    if (state.idx >= state.queue.length) { finishRound(); return; }
+    var w = state.queue[state.idx];
+
+    var card = document.createElement("div");
+    card.className = "card in";
+    card.innerHTML =
+      '<div>' + presentHtml(w) + '</div>' +
+      '<div class="fields">' +
+        '<div class="field"><label>과거형</label>' +
+          '<input type="text" autocomplete="off" autocapitalize="off" autocorrect="off" class="i-past"></div>' +
+        '<div class="field"><label>과거분사</label>' +
+          '<input type="text" autocomplete="off" autocapitalize="off" autocorrect="off" class="i-pp"></div>' +
+      '</div>';
+    streamEl.appendChild(card);
+
+    var iPast = card.querySelector(".i-past");
+    var iPp   = card.querySelector(".i-pp");
+    card.querySelector(".speak").addEventListener("click", function () { speak(w.present); });
+
+    iPast.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); iPp.focus(); }
+    });
+    iPp.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submit(card, w, iPast.value, iPp.value); }
+    });
+
+    iPast.focus();
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function submit(card, w, pastVal, ppVal) {
+    var okPast = check(pastVal, w.past);
+    var okPp   = check(ppVal, w.pp);
+    var allOk  = okPast && okPp;
+    if (!allOk) state.wrong.push(w);
+
+    var msg = allOk ? PRAISE[Math.floor(Math.random() * PRAISE.length)]
+                    : CHEER[Math.floor(Math.random() * CHEER.length)];
+
+    card.className = "card " + (allOk ? "correct" : "wrong");
+    card.innerHTML =
+      '<div>' + presentHtml(w) + '</div>' +
+      '<div class="result-row">' +
+        slotHtml("과거형", pastVal, w.past, okPast) +
+        slotHtml("과거분사", ppVal, w.pp, okPp) +
+      '</div>' +
+      '<div class="verdict ' + (allOk ? "ok" : "no") + '">' + (allOk ? "✓ " : "✗ ") + msg + '</div>';
+    card.querySelector(".speak").addEventListener("click", function () { speak(w.present); });
+
+    if (allOk) { soundCorrect(); confetti(); addStar(); }
+    else { soundWrong(); speak(w.present); }
+    mascotReact(allOk);
+
+    state.idx++;
+    updateBar();
+    nextQuestion();
+  }
+
+  function slotHtml(label, mine, answer, ok) {
+    mine = (mine || "").trim();
+    var mineDisp = mine === "" ? "(빈칸)" : escapeHtml(mine);
+    var html = '<div class="slot"><span class="lbl">' + label + '</span>';
+    html += '<span class="mine ' + (ok ? "" : "x") + '">' + mineDisp + '</span>';
+    if (!ok) html += ' <span class="ans">→ ' + escapeHtml(answer) + '</span>';
+    html += '</div>';
+    return html;
+  }
+
+  function finishRound() {
+    updateBar();
+    if (state.wrong.length === 0) {
+      quizEl.classList.add("hidden");
+      doneEl.classList.remove("hidden");
+      document.getElementById("doneMsg").textContent =
+        "별 " + starCount + "개 획득! (" + state.roundNo + "회차에 끝, 총 " + state.total + "문제)";
+      confetti(); setTimeout(confetti, 350); soundCorrect();
+      return;
+    }
+    var banner = document.createElement("div");
+    banner.className = "card in center";
+    banner.innerHTML =
+      '<div style="font-size:40px">🐣</div>' +
+      '<p style="margin:8px 0 12px;font-size:17px">틀린 문제 <b>' + state.wrong.length + '</b>개! 다시 도전해요.</p>' +
+      '<button class="retryBtn">틀린 것만 다시 ▶</button>';
+    streamEl.appendChild(banner);
+    banner.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    var wrongWords = state.wrong, nextNo = state.roundNo + 1;
+    banner.querySelector(".retryBtn").addEventListener("click", function () {
+      startRound(wrongWords, nextNo);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+    });
+  }
+
+  // ---------- wiring ----------
+  document.getElementById("startBtn").addEventListener("click", function () {
+    var words = parseList(document.getElementById("listInput").value);
+    if (words.length === 0) { alert("동사 목록을 입력해요! 한 줄에 '현재 과거 과거분사'."); return; }
+    audio(); // unlock sound on first gesture
+    starCount = 0; starsEl.textContent = "";
+    setupEl.classList.add("hidden");
+    quizEl.classList.remove("hidden");
+    startRound(words, 1);
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", function () {
+    doneEl.classList.add("hidden");
+    setupEl.classList.remove("hidden");
+    window.scrollTo({ top: 0 });
+  });
+})();
+</script>
+</body>
+</html>

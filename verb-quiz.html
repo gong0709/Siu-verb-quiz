@@ -280,6 +280,8 @@ write wrote written 쓰다</textarea>
     <div class="center" id="setupBtns">
       <button id="startBtn">시작하기 ▶</button>
       <button id="resumeBtn" class="ghost hidden"></button>
+      <button id="importBtn" class="ghost">파일 불러오기</button>
+      <input type="file" id="importFile" accept="application/json,.json" class="hidden">
     </div>
   </section>
 
@@ -298,6 +300,7 @@ write wrote written 쓰다</textarea>
         </div>
         <div class="topbtns">
           <button id="resetBtn" class="ghost mini">리셋</button>
+          <button id="exportBtn" class="ghost mini">내보내기</button>
         </div>
       </div>
     </div>
@@ -313,6 +316,7 @@ write wrote written 쓰다</textarea>
       <div class="center" id="doneBtns">
         <button id="nextCycleBtn">다음 단계 ▶</button>
         <button class="ghost" id="doneResetBtn">리셋 🔄</button>
+        <button class="ghost" id="doneExportBtn">내보내기</button>
       </div>
     </div>
   </section>
@@ -653,6 +657,30 @@ write wrote written 쓰다</textarea>
     }
   }
 
+  function exportSave() {
+    var data = JSON.stringify(currentSaveObject(), null, 2);
+    var blob = new Blob([data], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "verb-quiz-save.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function importSave(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var saved;
+      try { saved = JSON.parse(reader.result); } catch (e) { alert("올바른 저장 파일이 아니에요."); return; }
+      if (!saved || typeof saved.listText !== "string" || !Array.isArray(saved.progress)) {
+        alert("저장 파일 형식이 올바르지 않아요."); return;
+      }
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(saved)); } catch (e) {}
+      resumeGame(saved);
+    };
+    reader.readAsText(file);
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
@@ -676,6 +704,15 @@ write wrote written 쓰다</textarea>
     rb.classList.remove("hidden");
     rb.addEventListener("click", function () { audio(); resumeGame(load()); });
   })();
+
+  document.getElementById("exportBtn").addEventListener("click", exportSave);
+  document.getElementById("doneExportBtn").addEventListener("click", exportSave);
+  document.getElementById("importBtn").addEventListener("click", function () {
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) { importSave(e.target.files[0]); e.target.value = ""; }
+  });
 })();
 </script>
 </body>
